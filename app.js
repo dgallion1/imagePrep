@@ -18,6 +18,8 @@ class ImagePrepTool {
         this.processBtn = document.getElementById('processAll');
         this.qualitySlider = document.getElementById('quality');
         this.qualityValue = document.getElementById('qualityValue');
+        this.upscalingGroup = document.getElementById('upscalingGroup');
+        this.allowUpscaling = document.getElementById('allowUpscaling');
         
         // Modal elements
         this.modal = document.getElementById('imageModal');
@@ -121,13 +123,16 @@ class ImagePrepTool {
         this.handleFiles(files);
     }
 
-    handleFiles(files) {
+    async handleFiles(files) {
         if (files.length === 0) return;
         
         this.files = Array.from(files);
         this.controls.classList.remove('hidden');
         this.updateDropZoneWithPreviews();
         this.showAcceptanceAnimation();
+        
+        // Check if any images need upscaling and show the option
+        await this.checkForSmallImages();
     }
 
     updateDropZoneWithPreviews() {
@@ -200,6 +205,40 @@ class ImagePrepTool {
         }, 600);
     }
 
+    async checkForSmallImages() {
+        let hasSmallImages = false;
+        
+        for (const file of this.files) {
+            if (file.type.startsWith('image/')) {
+                try {
+                    const dimensions = await this.getImageDimensions(file);
+                    const longestSide = Math.max(dimensions.width, dimensions.height);
+                    if (longestSide < 1800) {
+                        hasSmallImages = true;
+                        break;
+                    }
+                } catch (error) {
+                    console.warn('Could not check dimensions for:', file.name);
+                }
+            }
+        }
+        
+        // Show or hide the upscaling option
+        this.upscalingGroup.style.display = hasSmallImages ? 'block' : 'none';
+    }
+
+    getImageDimensions(file) {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.onload = () => {
+                resolve({ width: img.width, height: img.height });
+                URL.revokeObjectURL(img.src);
+            };
+            img.onerror = reject;
+            img.src = URL.createObjectURL(file);
+        });
+    }
+
     async processAllImages() {
         if (this.files.length === 0) return;
 
@@ -231,7 +270,8 @@ class ImagePrepTool {
         return {
             targetSize: parseInt(document.getElementById('targetSize').value),
             quality: parseFloat(document.getElementById('quality').value),
-            maxFileSize: parseFloat(document.getElementById('maxFileSize').value) * 1024 * 1024
+            maxFileSize: parseFloat(document.getElementById('maxFileSize').value) * 1024 * 1024,
+            allowUpscaling: document.getElementById('allowUpscaling').checked
         };
     }
 
@@ -241,7 +281,7 @@ class ImagePrepTool {
             img.onload = async () => {
                 try {
                     // Validate image size
-                    const validation = this.validateImageSize(img.width, img.height, settings.targetSize);
+                    const validation = this.validateImageSize(img.width, img.height, settings.targetSize, settings.allowUpscaling);
                     if (!validation.valid) {
                         reject(new Error(validation.message));
                         return;
@@ -251,7 +291,8 @@ class ImagePrepTool {
                     const dimensions = this.calculateNewDimensions(
                         img.width, 
                         img.height, 
-                        settings.targetSize
+                        settings.targetSize,
+                        validation.needsUpscaling
                     );
 
                     canvas.width = dimensions.width;
@@ -280,7 +321,9 @@ class ImagePrepTool {
                         url: URL.createObjectURL(blob),
                         originalUrl: URL.createObjectURL(file),
                         warnings: warnings,
-                        wasResized: img.width !== dimensions.width || img.height !== dimensions.height
+                        wasResized: img.width !== dimensions.width || img.height !== dimensions.height,
+                        wasUpscaled: validation.needsUpscaling,
+                        originalLongestSide: validation.originalSize || Math.max(img.width, img.height)
                     });
                 } catch (error) {
                     reject(error);
@@ -291,41 +334,72 @@ class ImagePrepTool {
         });
     }
 
-    validateImageSize(width, height, targetSize) {
+    validateImageSize(width, height, targetSize, allowUpscaling) {
         const longestSide = Math.max(width, height);
         
         if (longestSide < 1800) {
-            return {
-                valid: false,
-                message: `Image resolution too small. Longest side is ${longestSide}px, but minimum required is 1800px. Please use a higher resolution image.`
-            };
+            if (!allowUpscaling) {
+                return {
+                    valid: false,
+                    message: `Image resolution too small. Longest side is ${longestSide}px, but minimum required is 1800px. Enable upscaling or use a higher resolution image.`
+                };
+            } else {
+                return {
+                    valid: true,
+                    needsUpscaling: true,
+                    originalSize: longestSide
+                };
+            }
         }
         
-        return { valid: true };
+        return { valid: true, needsUpscaling: false };
     }
 
-    calculateNewDimensions(originalWidth, originalHeight, targetSize) {
+    calculateNewDimensions(originalWidth, originalHeight, targetSize, needsUpscaling = false) {
         const longestSide = Math.max(originalWidth, originalHeight);
         
-        // If image is already smaller than or equal to target, keep original size
-        if (longestSide <= targetSize) {
+        // If image is smaller than target and we're not upscaling, keep original size
+        if (longestSide < targetSize && !needsUpscaling) {
             return { width: originalWidth, height: originalHeight };
         }
         
-        // Scale down proportionally
-        const aspectRatio = originalWidth / originalHeight;
-        
-        if (originalWidth > originalHeight) {
-            return {
-                width: targetSize,
-                height: Math.floor(targetSize / aspectRatio)
-            };
-        } else {
-            return {
-                width: Math.floor(targetSize * aspectRatio),
-                height: targetSize
-            };
+        // If image is smaller than 1800 but we're upscaling, scale up to at least 1800
+        if (longestSide < 1800 && needsUpscaling) {
+            const minTarget = Math.max(1800, targetSize);
+            const aspectRatio = originalWidth / originalHeight;
+            
+            if (originalWidth > originalHeight) {
+                return {
+                    width: minTarget,
+                    height: Math.floor(minTarget / aspectRatio)
+                };
+            } else {
+                return {
+                    width: Math.floor(minTarget * aspectRatio),
+                    height: minTarget
+                };
+            }
         }
+        
+        // If image is already larger than target, scale down proportionally
+        if (longestSide > targetSize) {
+            const aspectRatio = originalWidth / originalHeight;
+            
+            if (originalWidth > originalHeight) {
+                return {
+                    width: targetSize,
+                    height: Math.floor(targetSize / aspectRatio)
+                };
+            } else {
+                return {
+                    width: Math.floor(targetSize * aspectRatio),
+                    height: targetSize
+                };
+            }
+        }
+        
+        // Image is already the right size
+        return { width: originalWidth, height: originalHeight };
     }
 
     detectPotentialIssues(img) {
@@ -406,12 +480,34 @@ class ImagePrepTool {
         const card = document.createElement('div');
         card.className = 'image-card';
         
-        const compressionRatio = ((processedImage.originalSize - processedImage.newSize) / processedImage.originalSize * 100).toFixed(1);
-        const resizeStatus = processedImage.wasResized ? 'Resized' : 'No resize needed';
+        const sizeChange = processedImage.newSize - processedImage.originalSize;
+        const sizeChangeRatio = Math.abs(sizeChange) / processedImage.originalSize * 100;
+        
+        let sizeChangeText;
+        if (Math.abs(sizeChange) < 1024) { // Less than 1KB difference
+            sizeChangeText = 'File size: No significant change';
+        } else if (sizeChange < 0) {
+            sizeChangeText = `File size: Increased by ${sizeChangeRatio.toFixed(1)}%`;
+        } else {
+            sizeChangeText = `File size: Reduced by ${sizeChangeRatio.toFixed(1)}%`;
+        }
+        let resizeStatus = 'No changes needed';
+        if (processedImage.wasUpscaled) {
+            resizeStatus = `Upscaled from ${processedImage.originalLongestSide}px`;
+        } else if (processedImage.wasResized) {
+            resizeStatus = 'Resized (downscaled)';
+        }
         
         let warningsHtml = '';
+        
+        // Add upscaling warning
+        if (processedImage.wasUpscaled) {
+            warningsHtml += `<div class="warning-box">⚠️ Image was upscaled from ${processedImage.originalLongestSide}px to meet minimum requirements. This may reduce image quality.</div>`;
+        }
+        
+        // Add other warnings
         if (processedImage.warnings && processedImage.warnings.length > 0) {
-            warningsHtml = processedImage.warnings.map(warning => 
+            warningsHtml += processedImage.warnings.map(warning => 
                 `<div class="warning-box">⚠️ ${warning}</div>`
             ).join('');
         }
@@ -434,7 +530,7 @@ class ImagePrepTool {
             <div class="image-info">
                 <h4>${processedImage.name}</h4>
                 <p><strong>Status:</strong> ${resizeStatus}</p>
-                <p><strong>Size reduction:</strong> ${compressionRatio}%</p>
+                <p><strong>${sizeChangeText}</strong></p>
                 <p><strong>Format:</strong> JPEG (baseline, sRGB)</p>
             </div>
             ${warningsHtml}

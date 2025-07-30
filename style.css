@@ -608,4 +608,24 @@ main {
         max-width: 90vw;
         max-height: 75vh;
     }
+}/* Upscaling Option Styles */
+.upscaling-warning {
+    display: block;
+    color: #856404;
+    font-size: 0.8rem;
+    margin-top: 5px;
+    font-style: italic;
+}
+
+#upscalingGroup {
+    background: #fff3cd;
+    border: 1px solid #ffc107;
+    border-radius: 6px;
+    padding: 15px;
+    margin-top: 10px;
+}
+
+#upscalingGroup label {
+    color: #856404;
+    font-weight: 500;
 }
