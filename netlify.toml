@@ -1,0 +1,4 @@
+# netlify.toml
+[build]
+  publish = "."  # Or "/" - indicates the root of the repository
+  command = ""   # Or omit this line entirely if no build command
