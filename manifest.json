@@ -1,0 +1,25 @@
+{
+    "name": "Image Prep Tool",
+    "short_name": "ImagePrep",
+    "description": "Client-side image processing and optimization tool",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#667eea",
+    "theme_color": "#4facfe",
+    "orientation": "portrait-primary",
+    "icons": [
+        {
+            "src": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgdmlld0JveD0iMCAwIDE5MiAxOTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxOTIiIGhlaWdodD0iMTkyIiByeD0iMjQiIGZpbGw9InVybCgjZ3JhZGllbnQwX2xpbmVhcl8xXzEpIi8+CjxwYXRoIGQ9Ik00OCA2NEg5NkMxMDQuODM3IDY0IDExMiA3MS4xNjMgMTEyIDgwVjEyOEMxMTIgMTM2LjgzNyAxMDQuODM3IDE0NCA5NiAxNDRINDhDMzkuMTYzIDE0NCAzMiAxMzYuODM3IDMyIDEyOFY4MEMzMiA3MS4xNjMgMzkuMTYzIDY0IDQ4IDY0WiIgZmlsbD0id2hpdGUiLz4KPGV0IGQ9Ik02NCA3Nkg5NkMxMDQuODM3IDc2IDExMiA4My4xNjMgMTEyIDkyVjEzNkMxMTIgMTQ0LjgzNyAxMDQuODM3IDE1MiA5NiAxNTJINjRDNTUuMTYzIDE1MiA0OCAxNDQuODM3IDQ4IDEzNlY5MkM0OCA4My4xNjMgNTUuMTYzIDc2IDY0IDc2WiIgZmlsbD0id2hpdGUiLz4KPGN0cmNsZSBjeD0iNzIiIGN5PSI5NiIgcj0iOCIgZmlsbD0iIzRmYWNmZSIvPgo8cGF0aCBkPSJNNDggMTI4TDcyIDEwNEw5NiAxMjhWMTM2Qzk2IDEzNi44MzcgOTUuMTYzIDEzNy4xNjMgOTQgMTM3LjE2M0g0OUMzOS4xNjMgMTM3LjE2MyAzMiAxMzYuODM3IDMyIDEzNkwzMiAxMjhaIiBmaWxsPSIjNGZhY2ZlIi8+CjxkZWZzPgo8bGluZWFyR3JhZGllbnQgaWQ9ImdyYWRpZW50MF9saW5lYXJfMV8xIiB4MT0iMCIgeTE9IjAiIHgyPSIxOTIiIHkyPSIxOTIiIGdyYWRpZW50VW5pdHM9InVzZXJTcGFjZU9uVXNlIj4KPHN0b3Agc3RvcC1jb2xvcj0iIzY2N2VlYSIvPgo8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiM3NjRiYTIiLz4KPC9saW5lYXJHcmFkaWVudD4KPC9kZWZzPgo8L3N2Zz4K",
+            "sizes": "192x192",
+            "type": "image/svg+xml"
+        },
+        {
+            "src": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDUxMiA1MTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiByeD0iNjQiIGZpbGw9InVybCgjZ3JhZGllbnQwX2xpbmVhcl8xXzEpIi8+CjxwYXRoIGQ9Ik0xMjggMTcwSDI1NkMyODIuNTEgMTcwIDMwNCAxOTEuNDkgMzA0IDIxOFYzNDJDMzA0IDM2OC41MSAyODIuNTEgMzkwIDI1NiAzOTBIMTI4Qzk1LjQ5IDM5MCA4MCAzNjguNTEgODAgMzQyVjIxOEM4MCAxOTEuNDkgOTUuNDkgMTcwIDEyOCAxNzBaIiBmaWxsPSJ3aGl0ZSIvPgo8cGF0aCBkPSJNMTcwIDIwNkg2NkMyODIuNTEgMjA2IDMwNCAyMjcuNDkgMzA0IDI1NFYzODJDMzA0IDQwOC41MSAyODIuNTEgNDMwIDI1NiA0MzBIMTcwQzEzNy40OSA0MzAgMTIwIDQwOC41MSAxMjAgMzgyVjI1NEMxMjAgMjI3LjQ5IDEzNy40OSAyMDYgMTcwIDIwNloiIGZpbGw9IndoaXRlIi8+CjxjaXJjbGUgY3g9IjE5MiIgY3k9IjI1NiIgcj0iMjAiIGZpbGw9IiM0ZmFjZmUiLz4KPHN0aCBkPSJNMTIwIDM0MkwxOTIgMjcwTDI1NiAzNDJWMzgyQzI1NiAzODIuNTEgMjU1LjQ5IDM4My40OSAyNTQgMzgzLjQ5SDE3MUMxMzcuNDkgMzgzLjQ5IDEyMCAzODIuNTEgMTIwIDM4MkwxMjAgMzQyWiIgZmlsbD0iIzRmYWNmZSIvPgo8ZGVmcz4KPGxpbmVhckdyYWRpZW50IGlkPSJncmFkaWVudDBfbGluZWFyXzFfMSIgeDE9IjAiIHkxPSIwIiB4Mj0iNTEyIiB5Mj0iNTEyIiBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CjxzdG9wIHN0b3AtY29sb3I9IiM2NjdlZWEiLz4KPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjNzY0YmEyIi8+CjwvbGluZWFyR3JhZGllbnQ+CjwvZGVmcz4KPC9zdmc+Cg==",
+            "sizes": "512x512",
+            "type": "image/svg+xml"
+        }
+    ],
+    "categories": ["productivity", "utilities", "photo"],
+    "lang": "en",
+    "dir": "ltr"
+}

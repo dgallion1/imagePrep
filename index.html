@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Prep Tool</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Image Prep Tool</h1>
+            <p>Professional image processing for digital requirements - completely private and secure</p>
+        </header>
+
+        <main>
+            <div id="dropZone" class="drop-zone">
+                <div class="drop-zone-content">
+                    <div class="upload-icon">📁</div>
+                    <p>Drag & drop images here or <button id="selectFiles" class="select-btn">select files</button></p>
+                    <input type="file" id="fileInput" accept="image/*" multiple hidden>
+                    <small>Supports: JPEG, PNG, WebP, TIFF • Minimum resolution: 1800px longest side</small>
+                </div>
+            </div>
+
+            <div id="controls" class="controls hidden">
+                <div class="requirements-info">
+                    <h3>Processing Requirements:</h3>
+                    <ul>
+                        <li>Longest side must be at least 1800px (preferably 1920px)</li>
+                        <li>Convert to JPEG with baseline encoding</li>
+                        <li>File size under 5.0 MB</li>
+                        <li>Convert to sRGB color profile</li>
+                    </ul>
+                </div>
+                <div class="control-group">
+                    <label for="targetSize">Target Longest Side (px):</label>
+                    <select id="targetSize">
+                        <option value="1920">1920px (Recommended)</option>
+                        <option value="1800">1800px (Minimum)</option>
+                        <option value="2048">2048px (High Quality)</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label for="quality">JPEG Quality:</label>
+                    <input type="range" id="quality" min="0.7" max="1.0" step="0.05" value="0.95">
+                    <span id="qualityValue">95%</span>
+                </div>
+                <div class="control-group">
+                    <label for="maxFileSize">Max File Size (MB):</label>
+                    <input type="number" id="maxFileSize" value="5.0" min="1.0" max="5.0" step="0.1" readonly>
+                </div>
+                <button id="processAll" class="process-btn">Process Images</button>
+            </div>
+
+            <div id="preview" class="preview-section hidden">
+                <h3>Image Processing Results</h3>
+                <div id="imageGrid" class="image-grid"></div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Image Zoom Modal -->
+    <div id="imageModal" class="modal hidden">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content">
+            <button class="modal-close">&times;</button>
+            <img id="modalImage" src="" alt="Zoomed image">
+            <div class="modal-info">
+                <h4 id="modalTitle"></h4>
+                <p id="modalDetails"></p>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/pica@9.0.1/dist/pica.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.2/dist/browser-image-compression.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
