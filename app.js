@@ -126,18 +126,78 @@ class ImagePrepTool {
         
         this.files = Array.from(files);
         this.controls.classList.remove('hidden');
-        this.updateDropZoneText();
+        this.updateDropZoneWithPreviews();
+        this.showAcceptanceAnimation();
     }
 
-    updateDropZoneText() {
+    updateDropZoneWithPreviews() {
         const content = this.dropZone.querySelector('.drop-zone-content');
-        content.innerHTML = `
-            <div class="upload-icon">✅</div>
-            <p>${this.files.length} image(s) selected</p>
-            <button class="select-btn" onclick="document.getElementById('fileInput').click()">
-                Select different files
-            </button>
+        
+        if (this.files.length === 1) {
+            // Single file - show preview
+            this.createSingleFilePreview(content, this.files[0]);
+        } else {
+            // Multiple files - show grid
+            this.createMultipleFilePreviews(content);
+        }
+    }
+
+    createSingleFilePreview(container, file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            container.innerHTML = `
+                <div class="file-accepted">
+                    <div class="preview-image-container">
+                        <img src="${e.target.result}" alt="Preview" class="preview-image">
+                        <div class="image-overlay">
+                            <div class="check-icon">✓</div>
+                        </div>
+                    </div>
+                    <div class="file-info">
+                        <h4>${file.name}</h4>
+                        <p>${this.formatFileSize(file.size)} • Ready to process</p>
+                    </div>
+                    <div class="action-buttons">
+                        <button class="select-btn" onclick="document.getElementById('fileInput').click()">
+                            Change Image
+                        </button>
+                    </div>
+                </div>
+            `;
+        };
+        reader.readAsDataURL(file);
+    }
+
+    createMultipleFilePreviews(container) {
+        container.innerHTML = `
+            <div class="file-accepted multiple-files">
+                <div class="upload-icon accepted">✓</div>
+                <h4>${this.files.length} images selected</h4>
+                <div class="file-list">
+                    ${this.files.map(file => `
+                        <div class="file-item">
+                            <span class="file-name">${file.name}</span>
+                            <span class="file-size">${this.formatFileSize(file.size)}</span>
+                        </div>
+                    `).join('')}
+                </div>
+                <div class="action-buttons">
+                    <button class="select-btn" onclick="document.getElementById('fileInput').click()">
+                        Change Images
+                    </button>
+                </div>
+            </div>
         `;
+    }
+
+    showAcceptanceAnimation() {
+        // Add acceptance animation class
+        this.dropZone.classList.add('accepted');
+        
+        // Remove the animation class after animation completes
+        setTimeout(() => {
+            this.dropZone.classList.remove('accepted');
+        }, 600);
     }
 
     async processAllImages() {
