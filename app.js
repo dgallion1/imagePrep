@@ -135,7 +135,7 @@ class ImagePrepTool {
         await this.checkForSmallImages();
     }
 
-    updateDropZoneWithPreviews() {
+    async updateDropZoneWithPreviews() {
         const content = this.dropZone.querySelector('.drop-zone-content');
         
         if (this.files.length === 1) {
@@ -143,46 +143,116 @@ class ImagePrepTool {
             this.createSingleFilePreview(content, this.files[0]);
         } else {
             // Multiple files - show grid
-            this.createMultipleFilePreviews(content);
+            await this.createMultipleFilePreviews(content);
         }
     }
 
     createSingleFilePreview(container, file) {
         const reader = new FileReader();
         reader.onload = (e) => {
-            container.innerHTML = `
-                <div class="file-accepted">
-                    <div class="preview-image-container">
-                        <img src="${e.target.result}" alt="Preview" class="preview-image">
-                        <div class="image-overlay">
-                            <div class="check-icon">✓</div>
+            const img = new Image();
+            img.onload = () => {
+                const longestSide = Math.max(img.width, img.height);
+                const meetRequirements = longestSide >= 1800;
+                const statusColor = meetRequirements ? '#28a745' : '#ffc107';
+                
+                container.innerHTML = `
+                    <div class="file-accepted">
+                        <div class="preview-image-container">
+                            <img src="${e.target.result}" alt="Preview" class="preview-image">
+                            <div class="image-overlay">
+                                <div class="check-icon">✓</div>
+                            </div>
+                        </div>
+                        <div class="file-info">
+                            <h4>${file.name}</h4>
+                            <div class="image-details">
+                                <p><strong>Dimensions:</strong> ${img.width} × ${img.height} pixels</p>
+                                <p><strong>File Size:</strong> ${this.formatFileSize(file.size)}</p>
+                                <p><strong>Format:</strong> ${file.type.split('/')[1].toUpperCase()}</p>
+                                <p><strong>Longest Side:</strong> <span style="color: ${statusColor}">${longestSide}px</span></p>
+                                ${!meetRequirements ? 
+                                    '<p class="size-warning">⚠️ Below 1800px minimum - upscaling will be needed</p>' : 
+                                    '<p class="size-ok">✓ Meets minimum size requirements</p>'
+                                }
+                            </div>
+                        </div>
+                        <div class="action-buttons">
+                            <button class="select-btn" onclick="document.getElementById('fileInput').click()">
+                                Change Image
+                            </button>
                         </div>
                     </div>
-                    <div class="file-info">
-                        <h4>${file.name}</h4>
-                        <p>${this.formatFileSize(file.size)} • Ready to process</p>
-                    </div>
-                    <div class="action-buttons">
-                        <button class="select-btn" onclick="document.getElementById('fileInput').click()">
-                            Change Image
-                        </button>
-                    </div>
-                </div>
-            `;
+                `;
+            };
+            img.src = e.target.result;
         };
         reader.readAsDataURL(file);
     }
 
-    createMultipleFilePreviews(container) {
+    async createMultipleFilePreviews(container) {
+        // Show loading state first
         container.innerHTML = `
             <div class="file-accepted multiple-files">
                 <div class="upload-icon accepted">✓</div>
                 <h4>${this.files.length} images selected</h4>
-                <div class="file-list">
-                    ${this.files.map(file => `
-                        <div class="file-item">
-                            <span class="file-name">${file.name}</span>
-                            <span class="file-size">${this.formatFileSize(file.size)}</span>
+                <p>Analyzing image details...</p>
+            </div>
+        `;
+        
+        // Get details for each image
+        const fileDetails = await Promise.all(
+            this.files.map(async (file) => {
+                try {
+                    const dimensions = await this.getImageDimensions(file);
+                    const longestSide = Math.max(dimensions.width, dimensions.height);
+                    const meetRequirements = longestSide >= 1800;
+                    
+                    return {
+                        name: file.name,
+                        size: this.formatFileSize(file.size),
+                        dimensions: `${dimensions.width}×${dimensions.height}`,
+                        longestSide: longestSide,
+                        meetRequirements: meetRequirements,
+                        format: file.type.split('/')[1].toUpperCase()
+                    };
+                } catch (error) {
+                    return {
+                        name: file.name,
+                        size: this.formatFileSize(file.size),
+                        dimensions: 'Unknown',
+                        longestSide: 0,
+                        meetRequirements: false,
+                        format: file.type.split('/')[1].toUpperCase(),
+                        error: true
+                    };
+                }
+            })
+        );
+        
+        const needUpscaling = fileDetails.filter(f => !f.meetRequirements && !f.error).length;
+        
+        container.innerHTML = `
+            <div class="file-accepted multiple-files">
+                <div class="upload-icon accepted">✓</div>
+                <h4>${this.files.length} images selected</h4>
+                ${needUpscaling > 0 ? 
+                    `<p class="size-warning">⚠️ ${needUpscaling} image(s) below 1800px minimum</p>` :
+                    `<p class="size-ok">✓ All images meet size requirements</p>`
+                }
+                <div class="file-list detailed">
+                    ${fileDetails.map(file => `
+                        <div class="file-item detailed">
+                            <div class="file-main-info">
+                                <span class="file-name">${file.name}</span>
+                                <span class="file-size">${file.size}</span>
+                            </div>
+                            <div class="file-sub-info">
+                                <span>${file.dimensions} • ${file.format}</span>
+                                <span style="color: ${file.meetRequirements ? '#28a745' : '#ffc107'}">
+                                    ${file.longestSide}px
+                                </span>
+                            </div>
                         </div>
                     `).join('')}
                 </div>
@@ -486,7 +556,7 @@ class ImagePrepTool {
         let sizeChangeText;
         if (Math.abs(sizeChange) < 1024) { // Less than 1KB difference
             sizeChangeText = 'File size: No significant change';
-        } else if (sizeChange < 0) {
+        } else if (sizeChange >= 0) {
             sizeChangeText = `File size: Increased by ${sizeChangeRatio.toFixed(1)}%`;
         } else {
             sizeChangeText = `File size: Reduced by ${sizeChangeRatio.toFixed(1)}%`;
