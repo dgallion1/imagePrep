@@ -20,8 +20,8 @@
                 <div class="drop-zone-content">
                     <div class="upload-icon">📁</div>
                     <p>Drag & drop images here or <button id="selectFiles" class="select-btn">select files</button></p>
-                    <input type="file" id="fileInput" accept="image/*" multiple hidden>
-                    <small>Supports: JPEG, PNG, WebP, TIFF • Minimum resolution: 1800px longest side</small>
+                    <input type="file" id="fileInput" accept="image/*,.heic,.heif" multiple hidden>
+                    <small>Supports: JPEG, PNG, WebP, TIFF, HEIF/HEIC • Minimum resolution: 1800px longest side</small>
                 </div>
             </div>
 
@@ -84,6 +84,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/pica@9.0.1/dist/pica.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.2/dist/browser-image-compression.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/exif-js@2.3.0/exif.js"></script>
     <script src="app.js"></script>
 </body>
 </html>

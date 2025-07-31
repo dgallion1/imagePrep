@@ -118,7 +118,9 @@ class ImagePrepTool {
         e.preventDefault();
         this.dropZone.classList.remove('dragover');
         const files = Array.from(e.dataTransfer.files).filter(file => 
-            file.type.startsWith('image/')
+            file.type.startsWith('image/') || 
+            file.name.toLowerCase().endsWith('.heic') || 
+            file.name.toLowerCase().endsWith('.heif')
         );
         this.handleFiles(files);
     }
@@ -147,45 +149,60 @@ class ImagePrepTool {
         }
     }
 
-    createSingleFilePreview(container, file) {
+    async createSingleFilePreview(container, file) {
         const reader = new FileReader();
-        reader.onload = (e) => {
-            const img = new Image();
-            img.onload = () => {
-                const longestSide = Math.max(img.width, img.height);
-                const meetRequirements = longestSide >= 1800;
-                const statusColor = meetRequirements ? '#28a745' : '#ffc107';
-                
-                container.innerHTML = `
-                    <div class="file-accepted">
-                        <div class="preview-image-container">
-                            <img src="${e.target.result}" alt="Preview" class="preview-image">
-                            <div class="image-overlay">
-                                <div class="check-icon">✓</div>
-                            </div>
-                        </div>
-                        <div class="file-info">
-                            <h4>${file.name}</h4>
-                            <div class="image-details">
-                                <p><strong>Dimensions:</strong> ${img.width} × ${img.height} pixels</p>
-                                <p><strong>File Size:</strong> ${this.formatFileSize(file.size)}</p>
-                                <p><strong>Format:</strong> ${file.type.split('/')[1].toUpperCase()}</p>
-                                <p><strong>Longest Side:</strong> <span style="color: ${statusColor}">${longestSide}px</span></p>
-                                ${!meetRequirements ? 
-                                    '<p class="size-warning">⚠️ Below 1800px minimum - upscaling will be needed</p>' : 
-                                    '<p class="size-ok">✓ Meets minimum size requirements</p>'
-                                }
-                            </div>
-                        </div>
-                        <div class="action-buttons">
-                            <button class="select-btn" onclick="document.getElementById('fileInput').click()">
-                                Change Image
-                            </button>
+        reader.onload = async (e) => {
+            // Show loading state first
+            container.innerHTML = `
+                <div class="file-accepted">
+                    <div class="preview-image-container">
+                        <img src="${e.target.result}" alt="Preview" class="preview-image">
+                        <div class="image-overlay">
+                            <div class="check-icon">✓</div>
                         </div>
                     </div>
-                `;
-            };
-            img.src = e.target.result;
+                    <div class="file-info">
+                        <h4>${file.name}</h4>
+                        <p>Analyzing image details...</p>
+                    </div>
+                </div>
+            `;
+            
+            // Get detailed metadata including DPI
+            const metadata = await this.getImageMetadata(file);
+            const longestSide = Math.max(metadata.width, metadata.height);
+            const meetRequirements = longestSide >= 1800;
+            const statusColor = meetRequirements ? '#28a745' : '#ffc107';
+            
+            container.innerHTML = `
+                <div class="file-accepted">
+                    <div class="preview-image-container">
+                        <img src="${e.target.result}" alt="Preview" class="preview-image">
+                        <div class="image-overlay">
+                            <div class="check-icon">✓</div>
+                        </div>
+                    </div>
+                    <div class="file-info">
+                        <h4>${file.name}</h4>
+                        <div class="image-details">
+                            <p><strong>Dimensions:</strong> ${metadata.width} × ${metadata.height} pixels</p>
+                            <p><strong>File Size:</strong> ${this.formatFileSize(file.size)}</p>
+                            <p><strong>Format:</strong> ${this.getFileFormat(file)}</p>
+                            <p><strong>DPI:</strong> ${metadata.dpi ? `${metadata.dpi} DPI` : 'Not specified'}</p>
+                            <p><strong>Longest Side:</strong> <span style="color: ${statusColor}">${longestSide}px</span></p>
+                            ${!meetRequirements ? 
+                                '<p class="size-warning">⚠️ Below 1800px minimum - upscaling will be needed</p>' : 
+                                '<p class="size-ok">✓ Meets minimum size requirements</p>'
+                            }
+                        </div>
+                    </div>
+                    <div class="action-buttons">
+                        <button class="select-btn" onclick="document.getElementById('fileInput').click()">
+                            Change Image
+                        </button>
+                    </div>
+                </div>
+            `;
         };
         reader.readAsDataURL(file);
     }
@@ -204,17 +221,18 @@ class ImagePrepTool {
         const fileDetails = await Promise.all(
             this.files.map(async (file) => {
                 try {
-                    const dimensions = await this.getImageDimensions(file);
-                    const longestSide = Math.max(dimensions.width, dimensions.height);
+                    const metadata = await this.getImageMetadata(file);
+                    const longestSide = Math.max(metadata.width, metadata.height);
                     const meetRequirements = longestSide >= 1800;
                     
                     return {
                         name: file.name,
                         size: this.formatFileSize(file.size),
-                        dimensions: `${dimensions.width}×${dimensions.height}`,
+                        dimensions: `${metadata.width}×${metadata.height}`,
                         longestSide: longestSide,
                         meetRequirements: meetRequirements,
-                        format: file.type.split('/')[1].toUpperCase()
+                        format: this.getFileFormat(file),
+                        dpi: metadata.dpi
                     };
                 } catch (error) {
                     return {
@@ -223,7 +241,8 @@ class ImagePrepTool {
                         dimensions: 'Unknown',
                         longestSide: 0,
                         meetRequirements: false,
-                        format: file.type.split('/')[1].toUpperCase(),
+                        format: this.getFileFormat(file),
+                        dpi: null,
                         error: true
                     };
                 }
@@ -248,7 +267,7 @@ class ImagePrepTool {
                                 <span class="file-size">${file.size}</span>
                             </div>
                             <div class="file-sub-info">
-                                <span>${file.dimensions} • ${file.format}</span>
+                                <span>${file.dimensions} • ${file.format} • ${file.dpi ? `${file.dpi} DPI` : 'No DPI'}</span>
                                 <span style="color: ${file.meetRequirements ? '#28a745' : '#ffc107'}">
                                     ${file.longestSide}px
                                 </span>
@@ -279,10 +298,12 @@ class ImagePrepTool {
         let hasSmallImages = false;
         
         for (const file of this.files) {
-            if (file.type.startsWith('image/')) {
+            if (file.type.startsWith('image/') || 
+                file.name.toLowerCase().endsWith('.heic') || 
+                file.name.toLowerCase().endsWith('.heif')) {
                 try {
-                    const dimensions = await this.getImageDimensions(file);
-                    const longestSide = Math.max(dimensions.width, dimensions.height);
+                    const metadata = await this.getImageMetadata(file);
+                    const longestSide = Math.max(metadata.width, metadata.height);
                     if (longestSide < 1800) {
                         hasSmallImages = true;
                         break;
@@ -305,6 +326,61 @@ class ImagePrepTool {
                 URL.revokeObjectURL(img.src);
             };
             img.onerror = reject;
+            img.src = URL.createObjectURL(file);
+        });
+    }
+
+    async getImageMetadata(file) {
+        return new Promise((resolve) => {
+            const img = new Image();
+            img.onload = () => {
+                // Try to get EXIF data
+                if (typeof EXIF !== 'undefined') {
+                    EXIF.getData(img, () => {
+                        const xResolution = EXIF.getTag(img, 'XResolution');
+                        const yResolution = EXIF.getTag(img, 'YResolution');
+                        const resolutionUnit = EXIF.getTag(img, 'ResolutionUnit');
+                        
+                        let dpi = null;
+                        if (xResolution && yResolution) {
+                            // ResolutionUnit: 1 = None, 2 = inches, 3 = centimeters
+                            let dpiX = xResolution;
+                            let dpiY = yResolution;
+                            
+                            if (resolutionUnit === 3) {
+                                // Convert from pixels per cm to pixels per inch
+                                dpiX = Math.round(xResolution * 2.54);
+                                dpiY = Math.round(yResolution * 2.54);
+                            }
+                            
+                            // Use the average if they differ, or just use X resolution
+                            dpi = Math.round((dpiX + dpiY) / 2);
+                        }
+                        
+                        resolve({
+                            width: img.width,
+                            height: img.height,
+                            dpi: dpi
+                        });
+                        URL.revokeObjectURL(img.src);
+                    });
+                } else {
+                    // EXIF library not available, return basic info
+                    resolve({
+                        width: img.width,
+                        height: img.height,
+                        dpi: null
+                    });
+                    URL.revokeObjectURL(img.src);
+                }
+            };
+            img.onerror = () => {
+                resolve({
+                    width: 0,
+                    height: 0,
+                    dpi: null
+                });
+            };
             img.src = URL.createObjectURL(file);
         });
     }
@@ -646,6 +722,23 @@ class ImagePrepTool {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+    }
+
+    getFileFormat(file) {
+        const fileName = file.name.toLowerCase();
+        
+        // Check for HEIF/HEIC files by extension since MIME type may not be reliable
+        if (fileName.endsWith('.heic')) return 'HEIC';
+        if (fileName.endsWith('.heif')) return 'HEIF';
+        
+        // For other formats, use MIME type
+        if (file.type && file.type.includes('/')) {
+            return file.type.split('/')[1].toUpperCase();
+        }
+        
+        // Fallback to file extension
+        const extension = fileName.split('.').pop();
+        return extension ? extension.toUpperCase() : 'UNKNOWN';
     }
 
     formatFileSize(bytes) {
